@@ -39,11 +39,15 @@ const App: React.FC = () => {
         const { data: { session } } = await Promise.race([sessionPromise, timeoutPromise]) as any;
 
         if (session?.user && mounted) {
-          const { data: profile } = await supabase
+          const profilePromise = supabase
             .from('profiles')
             .select('*')
             .eq('id', session.user.id)
             .single();
+
+          // Also race the profile fetch to prevent hanging
+          const { data: profile } = await Promise.race([profilePromise, new Promise((_, reject) => setTimeout(() => reject(new Error('Profile timeout')), 5000))]) as any;
+
           if (profile && mounted) setCurrentUser(profile as User);
         }
       } catch (error) {
