@@ -47,7 +47,7 @@ const ContactList = ({ contacts, activeThread, onlineUsers, onContactSelect }) =
             <p className={`font-bold text-sm truncate ${activeThread?.id === contact.id ? 'text-blue-400' : 'text-slate-200'}`}>
               {'username' in contact ? contact.username : contact.name}
             </p>
-            <p className="text-[10px] text-slate-500 uppercase tracking-widest">{contact.role || 'External'}</p>
+            <p className="text-[10px] text-slate-500 uppercase tracking-widest">{'role' in contact ? contact.role : 'External'}</p>
           </div>
         </button>
       ))}
@@ -176,7 +176,7 @@ const ChatArea = ({
           <form onSubmit={onSend} className="space-y-4">
             <div className="flex flex-wrap gap-3 items-center">
                <div className="flex p-1 bg-slate-800 rounded-xl border border-slate-700">
-                  <button type="button" onClick={() => setMsgType(MessageType.WEB)} className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all ${msgType === MessageType.WEB ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-500 hover:text-slate-300'}`} disabled={!activeThread.role}>Web-to-Web</button>
+                  <button type="button" onClick={() => setMsgType(MessageType.WEB)} className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all ${msgType === MessageType.WEB ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-500 hover:text-slate-300'}`} disabled={!('role' in activeThread)}>Web-to-Web</button>
                   <button type="button" onClick={() => setMsgType(MessageType.SMS)} className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all ${msgType === MessageType.SMS ? 'bg-emerald-600 text-white shadow-md' : 'text-slate-500 hover:text-slate-300'}`} disabled={!activeThread.mobile}>SMS Gateway</button>
               </div>
             </div>
