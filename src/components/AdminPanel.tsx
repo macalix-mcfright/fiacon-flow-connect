@@ -73,6 +73,19 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
   const handleDeleteUser = async (userId: string, username: string) => {
     if (window.confirm(`Are you sure you want to permanently delete user "${username}"? This action cannot be undone.`)) {
       setIsUpdating(userId);
+
+      // Cleanup messages first to avoid "chk_recipient" constraint violation
+      const { error: cleanupError } = await supabase
+        .from('messages')
+        .delete()
+        .or(`sender_id.eq.${userId},recipient_profile_id.eq.${userId}`);
+
+      if (cleanupError) {
+        alert(`Failed to clean up user messages: ${cleanupError.message}`);
+        setIsUpdating(null);
+        return;
+      }
+
       const result = await authService.deleteUser(userId);
       if (result.success) {
         fetchUsers();

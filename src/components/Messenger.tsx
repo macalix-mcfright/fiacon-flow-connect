@@ -139,7 +139,7 @@ const ChatArea = ({
             </div>
             <div>
               <h3 className="font-bold text-slate-100">{'username' in activeThread ? activeThread.username : activeThread.name}</h3>
-              <p className="text-xs text-slate-500 mt-0.5">{onlineUsers[activeThread.id] ? 'Online' : (activeThread.role ? 'Offline' : 'External')}</p>
+              <p className="text-xs text-slate-500 mt-0.5">{onlineUsers[activeThread.id] ? 'Online' : ('role' in activeThread ? 'Offline' : 'External')}</p>
             </div>
           </div>
           <div className="flex gap-3">
