@@ -1,0 +1,14 @@
+# Dependencies
+node_modules
+
+# Production build
+dist
+
+# Environment variables (Keep secrets safe!)
+.env
+.env.local
+
+# OS & Editor files
+.DS_Store
+.vscode
+.idea

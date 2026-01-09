@@ -1,0 +1,8 @@
+{
+  "name": "Fiacon Flow Enterprise Messaging V5.6_Build_Online",
+  "description": "Unified enterprise gateway for SMS, Web-to-Web messaging, and AI-powered communication management with lead generation and security auditing.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
