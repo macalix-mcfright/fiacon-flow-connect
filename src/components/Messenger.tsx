@@ -222,6 +222,29 @@ const Messenger: React.FC<MessengerProps> = ({ user, initialTarget, onThreadOpen
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
   const [incomingCall, setIncomingCall] = useState<any>(null);
+  const ringtoneRef = useRef<HTMLAudioElement | null>(null);
+
+  useEffect(() => {
+    // Initialize ringtone. Replace URL with your local asset '/ringtone.mp3' if available.
+    ringtoneRef.current = new Audio('https://cdn.pixabay.com/download/audio/2022/03/24/audio_c8c8a73467.mp3?filename=ringtone-126505.mp3');
+    ringtoneRef.current.loop = true;
+    
+    return () => {
+      if (ringtoneRef.current) {
+        ringtoneRef.current.pause();
+        ringtoneRef.current = null;
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (incomingCall) {
+      ringtoneRef.current?.play().catch(e => console.warn("Ringtone autoplay blocked:", e));
+    } else {
+      ringtoneRef.current?.pause();
+      if (ringtoneRef.current) ringtoneRef.current.currentTime = 0;
+    }
+  }, [incomingCall]);
 
 
   const filteredMessages = useMemo(() => {
@@ -389,6 +412,7 @@ const Messenger: React.FC<MessengerProps> = ({ user, initialTarget, onThreadOpen
     setCallDuration(0);
     setLocalStream(null);
     setRemoteStream(null);
+    setIncomingCall(null);
   };
   
   const handleToggleMute = () => {

@@ -28,21 +28,28 @@ const App: React.FC = () => {
   }, []);
 
   useEffect(() => {
+    let mounted = true;
+
     const initializeAuth = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.user) {
+        // Race condition to prevent infinite loading if session fetch hangs
+        const sessionPromise = supabase.auth.getSession();
+        const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Auth timeout')), 5000));
+
+        const { data: { session } } = await Promise.race([sessionPromise, timeoutPromise]) as any;
+
+        if (session?.user && mounted) {
           const { data: profile } = await supabase
             .from('profiles')
             .select('*')
             .eq('id', session.user.id)
             .single();
-          if (profile) setCurrentUser(profile as User);
+          if (profile && mounted) setCurrentUser(profile as User);
         }
       } catch (error) {
         console.error('Auth initialization error:', error);
       } finally {
-        setLoading(false);
+        if (mounted) setLoading(false);
       }
     };
 
@@ -50,19 +57,20 @@ const App: React.FC = () => {
 
     const { data: authListener } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        if (event === 'SIGNED_IN' && session?.user) {
+        if (event === 'SIGNED_IN' && session?.user && mounted) {
           const { data: profile } = await supabase
             .from('profiles')
             .select('*')
             .eq('id', session.user.id)
             .single();
-          setCurrentUser(profile as User);
-        } else if (event === 'SIGNED_OUT') {
+          if (mounted) setCurrentUser(profile as User);
+        } else if (event === 'SIGNED_OUT' && mounted) {
           setCurrentUser(null);
         }
       }
     );
     return () => {
+      mounted = false;
       authListener.subscription.unsubscribe();
     };
   }, []);

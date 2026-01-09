@@ -74,25 +74,26 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
     if (window.confirm(`Are you sure you want to permanently delete user "${username}"? This action cannot be undone.`)) {
       setIsUpdating(userId);
 
-      // Cleanup messages first to avoid "chk_recipient" constraint violation
-      const { error: cleanupError } = await supabase
-        .from('messages')
-        .delete()
-        .or(`sender_id.eq.${userId},recipient_profile_id.eq.${userId}`);
+      try {
+        // Cleanup messages first to avoid "chk_recipient" constraint violation.
+        // We split the delete operations to ensure all related messages are removed.
+        const { error: sendError } = await supabase.from('messages').delete().eq('sender_id', userId);
+        if (sendError) throw new Error(`Failed to delete sent messages: ${sendError.message}`);
 
-      if (cleanupError) {
-        alert(`Failed to clean up user messages: ${cleanupError.message}`);
+        const { error: recvError } = await supabase.from('messages').delete().eq('recipient_profile_id', userId);
+        if (recvError) throw new Error(`Failed to delete received messages: ${recvError.message}`);
+
+        const result = await authService.deleteUser(userId);
+        if (result.success) {
+          fetchUsers();
+        } else {
+          throw new Error(result.error);
+        }
+      } catch (error: any) {
+        alert(`Failed to delete user: ${error.message}`);
+      } finally {
         setIsUpdating(null);
-        return;
       }
-
-      const result = await authService.deleteUser(userId);
-      if (result.success) {
-        fetchUsers();
-      } else {
-        alert(`Failed to delete user: ${result.error}`);
-      }
-      setIsUpdating(null);
     }
   };
 
