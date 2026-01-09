@@ -33,7 +33,7 @@ const LeadsManager: React.FC<{ user: User }> = ({ user }) => {
     
     const { error } = await supabase.from('leads').update({ status: nextStatus }).eq('id', lead.id);
     if (!error) {
-        setLeads(leads.map(l => l.id === lead.id ? { ...l, status: nextStatus } : l));
+        setLeads(leads.map(l => l.id === lead.id ? { ...l, status: nextStatus as Lead['status'] } : l));
     }
   };
 
