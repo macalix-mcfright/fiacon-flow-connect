@@ -89,6 +89,42 @@ const App: React.FC = () => {
     setActiveTab('dashboard');
   };
 
+  // Enforce Single Session: Log out if signed in elsewhere
+  useEffect(() => {
+    if (!currentUser) return;
+
+    // Generate a unique ID for this specific browser tab/window
+    const currentSessionId = self.crypto.randomUUID();
+
+    const enforceSession = async () => {
+      // 1. Claim this session in the database
+      await supabase.from('profiles').update({ session_id: currentSessionId } as any).eq('id', currentUser.id);
+
+      // 2. Listen for changes to the profile's session_id
+      const channel = supabase
+        .channel(`session_guard_${currentUser.id}`)
+        .on(
+          'postgres_changes',
+          { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${currentUser.id}` },
+          (payload) => {
+            const newSessionId = payload.new.session_id;
+            // If the DB session ID changes and doesn't match ours, another device logged in
+            if (newSessionId && newSessionId !== currentSessionId) {
+              alert('Security Alert: You have been logged in on another device. This session will now close.');
+              handleLogout();
+            }
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    };
+
+    enforceSession();
+  }, [currentUser]);
+
   const handleStartMessage = (contact: User | Contact) => {
     setMessengerTarget(contact);
     setActiveTab('messenger');
