@@ -28,61 +28,47 @@ const App: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    let mounted = true;
-
-    const initializeAuth = async () => {
-      try {
-        // Race condition to prevent infinite loading if session fetch hangs
-        const sessionPromise = supabase.auth.getSession();
-        const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Auth timeout')), 5000));
-
-        const { data: { session } } = await Promise.race([sessionPromise, timeoutPromise]) as any;
-
-        if (session?.user && mounted) {
-          const profilePromise = supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', session.user.id)
-            .single();
-
-          // Also race the profile fetch to prevent hanging
-          const { data: profile } = await Promise.race([profilePromise, new Promise((_, reject) => setTimeout(() => reject(new Error('Profile timeout')), 5000))]) as any;
-
-          if (profile && mounted) setCurrentUser(profile as User);
-        }
-      } catch (error) {
-        console.error('Auth initialization error:', error);
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    };
-
-    initializeAuth();
-
+    setLoading(true);
     const { data: authListener } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (event === 'SIGNED_IN' && session?.user && mounted) {
-          const { data: profile } = await supabase
+      async (_event, session) => {
+        if (session?.user) {
+          // A session exists, user is signed in. Fetch their profile.
+          const { data: profile, error } = await supabase
             .from('profiles')
             .select('*')
             .eq('id', session.user.id)
             .single();
-          if (mounted) setCurrentUser(profile as User);
-        } else if (event === 'SIGNED_OUT' && mounted) {
+
+          if (error) {
+            console.error('Error fetching profile on auth state change:', error.message);
+            // If profile is missing, something is wrong. Log them out.
+            await authService.signOut();
+            setCurrentUser(null);
+          } else if (profile) {
+            // Profile found, check status
+            if (profile.status === 'PENDING_APPROVAL') {
+              // Don't set the user, effectively logging them out from the UI's perspective
+              // and show an alert.
+              alert('Your account is awaiting admin approval.');
+              await authService.signOut();
+              setCurrentUser(null);
+            } else {
+              setCurrentUser(profile as User);
+            }
+          }
+        } else {
+          // No session, user is signed out.
           setCurrentUser(null);
         }
+        setLoading(false);
       }
     );
+
     return () => {
-      mounted = false;
       authListener.subscription.unsubscribe();
     };
   }, []);
 
-  const handleLoginSuccess = (user: User) => {
-    setCurrentUser(user);
-  };
-  
   const handleLogout = async () => {
     await authService.signOut();
     setCurrentUser(null);
@@ -142,7 +128,7 @@ const App: React.FC = () => {
   }
 
   if (!currentUser) {
-    return <Login onLoginSuccess={handleLoginSuccess} />;
+    return <Login />;
   }
 
   return (

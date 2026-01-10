@@ -34,37 +34,20 @@ export const authService = {
   /**
    * Step 1: Sign in the user with email and password using Supabase Auth.
    */
-  async signIn(email: string, password: string): Promise<{ success: boolean; user?: User; error?: string }> {
-    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+  async signIn(email: string, password: string): Promise<{ success: boolean; error?: string }> {
+    const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
 
-    if (authError || !authData.user) {
-      console.error('Supabase Sign In Error:', authError?.message);
-      return { success: false, error: authError?.message || 'Invalid credentials.' };
+    if (error) {
+      console.error('Supabase Sign In Error:', error.message);
+      return { success: false, error: error.message };
     }
 
-    // After successful authentication, fetch the user's profile from the 'profiles' table.
-    const { data: profileData, error: profileError } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', authData.user.id)
-      .single();
-
-    if (profileError || !profileData) {
-      console.error('Supabase Profile Fetch Error:', profileError?.message);
-      await supabase.auth.signOut();
-      return { success: false, error: 'Could not find user profile.' };
-    }
-
-    // SECURITY CHECK: Do not allow pending users to log in.
-    if (profileData.status === 'PENDING_APPROVAL') {
-      await supabase.auth.signOut();
-      return { success: false, error: 'Your account is awaiting admin approval.' };
-    }
-
-    return { success: true, user: profileData as User };
+    // The onAuthStateChange listener in App.tsx will handle fetching the profile
+    // and setting the user state, including all security checks.
+    return { success: true };
   },
 
   /**
