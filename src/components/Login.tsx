@@ -2,11 +2,7 @@ import React, { useState } from 'react';
 import { User } from '../types';
 import { authService } from '../services/authService';
 
-interface LoginProps {
-  onLoginSuccess: (user: User) => void;
-}
-
-const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
+const Login: React.FC = () => {
   const [view, setView] = useState<'login' | 'register' | 'reset'>('login');
   
   // Login State
@@ -32,9 +28,9 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
     setError('');
     setMessage('');
     const result = await authService.signIn(loginEmail, loginPassword);
-    if (result.success && result.user) {
-      onLoginSuccess(result.user);
-    } else {
+    // On success, the onAuthStateChange listener in App.tsx will handle the state update.
+    // We only need to handle the error case here.
+    if (!result.success) {
       setError(result.error || 'Invalid credentials or unauthorized access point.');
     }
     setIsLoading(false);
